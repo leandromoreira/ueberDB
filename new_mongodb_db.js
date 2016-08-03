@@ -96,11 +96,10 @@ exports.database.prototype._onMongoConnect = function(error, db) {
     var mongoBulk = [];
     for (var i in bulk) {
       var eachOperation = bulk[i];
-      console.log(operations, eachOperation.type)
       var keyOperation = operations[eachOperation.type]
-      mongoBulk.push({
-        keyOperation: {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
-      })
+      var eachBulk = {}
+      eachBulk[keyOperation] = {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
+      mongoBulk.push(eachBulk)
     }
 
     this.collection.bulkWrite(mongoBulk, callback)
