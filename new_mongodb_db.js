@@ -14,16 +14,16 @@
 
 exports.database = function(settings) {
   var assertions = {
-    'exist': function(v) {return v !== undefined && v !== null}
-    'isString': function(v) {return typeof v === 'string'},
-    'isNumber': function(v) {return typeof v === 'number'},
+    exist: function(v) {return v !== undefined && v !== null},
+    isString: function(v) {return typeof v === 'string'},
+    isNumber: function(v) {return typeof v === 'number'},
   }
   var assert = function(value, assertion, message) { if (!assertion(value)) throw message }
 
-  assert(settings, assertions['exist'], "you need to inform the settings")
-  assert(settings.host, assertions['isString'], "you need to inform a valid host (string)")
-  assert(settings.dbname, assertions['isString'], "you need to inform a valid dbname (string)")
-  assert(settings.port, assertions['isNumber'], "you need to inform a valid port (number)")
+  assert(settings, assertions.exist, "you need to inform the settings")
+  assert(settings.host, assertions.isString, "you need to inform a valid host (string)")
+  assert(settings.dbname, assertions.isString, "you need to inform a valid dbname (string)")
+  assert(settings.port, assertions.isNumber, "you need to inform a valid port (number)")
 
   this.settings = settings
   this.settings.collectionName = typeof this.settings.collectionName === 'string' ? this.settings.collectionName : "store";
@@ -55,9 +55,9 @@ exports.database.prototype.init = function(callback) {
   this.onMongoReady = callback
 
   if (hasExtraConfiguration) {
-    MongoClient.connect(url, this.settings.extra, this._onMongoConnect);
+    MongoClient.connect(url, this.settings.extra, this._onMongoConnect.bind(this));
   } else {
-    MongoClient.connect(url, this._onMongoConnect);
+    MongoClient.connect(url, this._onMongoConnect.bind(this));
   }
 }
 
@@ -96,8 +96,10 @@ exports.database.prototype._onMongoConnect = function(error, db) {
     var mongoBulk = [];
     for (var i in bulk) {
       var eachOperation = bulk[i];
+      console.log(operations, eachOperation.type)
+      var keyOperation = operations[eachOperation.type]
       mongoBulk.push({
-        operations[eachOperation.type]: {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
+        keyOperation: {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
       })
     }
 
