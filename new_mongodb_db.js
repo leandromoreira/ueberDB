@@ -52,6 +52,7 @@ exports.database.prototype.init = function(callback) {
   var MongoClient = require('mongodb').MongoClient;
   var url = this.settings.url || this._buildUrl(this.settings)
   var hasExtraConfiguration = (this.settings.extra !== undefined && this.settings.extra !== null)
+  this.onMongoReady = callback
 
   if (hasExtraConfiguration) {
     MongoClient.connect(url, this.settings.extra, this._onMongoConnect);
@@ -103,4 +104,6 @@ exports.database.prototype._onMongoConnect = function(error, db) {
     this.collection.bulkWrite(mongoBulk, callback)
   }
   exports.database.prototype.close = function (callback) {this.db.close(callback)}
+
+  this.onMongoReady(error, this)
 }
