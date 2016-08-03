@@ -42,70 +42,65 @@ exports.database = function(settings) {
 //
 // settings.extra - http://mongodb.github.io/node-mongodb-native/2.2/reference/connecting/connection-settings/
 // could be ssl validation ex: server: {sslValidate: true, sslCA: ca}
+exports.database.prototype._buildUrl = function(settings) {
+  var protocol = "mongodb://";
+  var authentication = settings.user && settings.password ? settings.user + ":" + settings.password + "@" : "";
+  return protocol + authentication + settings.host + ":" + settings.port + "/" + settings.dbname
+}
 
 exports.database.prototype.init = function(callback) {
   var MongoClient = require('mongodb').MongoClient;
-  function mountUrl(settings) {
-    var protocol = "mongodb://";
-    var authentication = settings.user && settings.password ? settings.user + ":" + settings.password + "@" : "";
-    return protocol + authentication + settings.host + ":" + settings.port + "/" + settings.dbname
-  }
-  this.callback = callback;
-  var url = this.settings.url || mountUrl(this.settings)
-
+  var url = this.settings.url || this._buildUrl(this.settings)
   var hasExtraConfiguration = (this.settings.extra !== undefined && this.settings.extra !== null)
 
-  var onMongoConnect = function(error, db) {
-
-    if (error) {
-      this.callback(error);
-      throw "an error occored [" + error + "] on mongo connect"
-    }
-
-    this.db = db;
-    this.collection = db.collection(this.settings.collectionName);
-    this.db.ensureIndex(this.settings.collectionName, {key: 1}, function(err, indexName) {console.log('index created ' + indexName)})
-
-    exports.database.prototype.set = function (key, value, callback) {
-      this.collection.update({key: key}, {key: key, val: value}, {safe: true, upsert: true}, callback)
-    }.bind(this)
-
-    exports.database.prototype.get = function (key, callback) {
-      this.collection.findOne({key: key}, callback)
-    }.bind(this)
-
-    exports.database.prototype.remove = function (key, callback) {
-      this.collection.remove({key: key}, {safe: true}, callback)
-    }.bind(this)
-
-    exports.database.prototype.findKeys = function (key, notKey, callback) {
-      var findRegex = this.createFindRegex(key,notKey);
-      this.collection.find({}, function(err, docs) {
-	var filteredKeys = docs.filter(function(doc){return doc.key.match(findRegex)});
-	var keys = filteredKeys.map(function(doc){return doc.key});
-	callback(keys);
-      });
-    }
-    exports.database.prototype.doBulk = function (bulk, callback) {
-      var operations = {
-	"set": "insertOne", "remove": "deleteOne"
-      }
-      var mongoBulk = [];
-      for (var i in bulk) {
-	var eachOperation = bulk[i];
-	mongoBulk.push({
-	  operations[eachOperation.type]: {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
-	})
-      }
-
-      this.collection.bulkWrite(mongoBulk, callback)
-    }
-    exports.database.prototype.close = function (callback) {this.db.close(callback)}.bind(this)
-  }.bind(this)
-
   if (hasExtraConfiguration) {
-    MongoClient.connect(url, this.settings.extra, onMongoConnect.bind(this));
+    MongoClient.connect(url, this.settings.extra, this._onMongoConnect);
   } else {
-    MongoClient.connect(url, onMongoConnect.bind(this));
+    MongoClient.connect(url, this._onMongoConnect);
   }
+}
+
+exports.database.prototype._onMongoConnect = function(error, db) {
+  if (error) {throw "an error occored [" + error + "] on mongo connect"}
+
+  this.db = db;
+  this.collection = this.db.collection(this.settings.collectionName);
+  this.db.ensureIndex(this.settings.collectionName, {key: 1}, {unique:true, background:true},
+    function(err, indexName) {console.log("index created [" + indexName + "]")})
+
+  exports.database.prototype.set = function (key, value, callback) {
+    this.collection.update({key: key}, {key: key, val: value}, {safe: true, upsert: true}, callback)
+  }
+
+  exports.database.prototype.get = function (key, callback) {
+    this.collection.findOne({key: key}, callback)
+  }
+
+  exports.database.prototype.remove = function (key, callback) {
+    this.collection.remove({key: key}, {safe: true}, callback)
+  }
+
+  exports.database.prototype.findKeys = function (key, notKey, callback) {
+    var findRegex = this.createFindRegex(key,notKey);
+    this.collection.find({}, function(err, docs) {
+      var filteredKeys = docs.filter(function(doc){return doc.key.match(findRegex)});
+      var keys = filteredKeys.map(function(doc){return doc.key});
+      callback(keys);
+    });
+  }
+  exports.database.prototype.doBulk = function (bulk, callback) {
+    var operations = {
+      "set": "insertOne", "remove": "deleteOne"
+    }
+    var mongoBulk = [];
+    for (var i in bulk) {
+      var eachOperation = bulk[i];
+      mongoBulk.push({
+        operations[eachOperation.type]: {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
+      })
+    }
+
+    this.collection.bulkWrite(mongoBulk, callback)
+  }
+  exports.database.prototype.close = function (callback) {this.db.close(callback)}
 }
