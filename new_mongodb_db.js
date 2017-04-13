@@ -36,9 +36,12 @@ exports.database = function(settings) {
 
   assert(settings, assertions.exist, 'you need to inform the settings');
 
-  assert(settings.host, assertions.isString, 'you need to inform a valid host (string)');
-  assert(settings.dbname, assertions.isString, 'you need to inform a valid dbname (string)');
-  assert(settings.port, assertions.isNumber, 'you need to inform a valid port (number)');
+  // some settings are only necessary when the full url is not provided
+  if (!settings.url) {
+    assert(settings.host, assertions.isString, 'you need to inform a valid host (string)');
+    assert(settings.dbname, assertions.isString, 'you need to inform a valid dbname (string)');
+    assert(settings.port, assertions.isNumber, 'you need to inform a valid port (number)');
+  }
 
   this.settings = settings;
   this.settings.collectionName = assertions.isString(this.settings.collectionName) ? this.settings.collectionName : 'store';
