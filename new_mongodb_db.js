@@ -11,7 +11,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+var MongoClient = require('mongodb').MongoClient;
 
+/**
+ * "settings" must be an object with the following values:
+ *   - host           (string): mandatory if no url is provided on settings
+ *   - dbname         (string): mandatory if no url is provided on settings
+ *   - port           (number): mandatory if no url is provided on settings
+ *   - url            (string): full connection url, following the documentation on
+ *                              https://docs.mongodb.com/manual/reference/connection-string/
+ *   - user           (string)
+ *   - password       (string)
+ *   - extra          (object): optional connection settings, as described on
+ *                              http://mongodb.github.io/node-mongodb-native/2.2/api/MongoClient.html#.connect
+ *   - collectionName (string): defaults to "store"
+ */
 exports.database = function(settings) {
   var assertions = {
     exist: function(v) {return v !== undefined && v !== null},
@@ -20,13 +34,14 @@ exports.database = function(settings) {
   }
   var assert = function(value, assertion, message) { if (!assertion(value)) throw message }
 
-  assert(settings, assertions.exist, "you need to inform the settings")
-  assert(settings.host, assertions.isString, "you need to inform a valid host (string)")
-  assert(settings.dbname, assertions.isString, "you need to inform a valid dbname (string)")
-  assert(settings.port, assertions.isNumber, "you need to inform a valid port (number)")
+  assert(settings, assertions.exist, 'you need to inform the settings');
 
-  this.settings = settings
-  this.settings.collectionName = typeof this.settings.collectionName === 'string' ? this.settings.collectionName : "store";
+  assert(settings.host, assertions.isString, 'you need to inform a valid host (string)');
+  assert(settings.dbname, assertions.isString, 'you need to inform a valid dbname (string)');
+  assert(settings.port, assertions.isNumber, 'you need to inform a valid port (number)');
+
+  this.settings = settings;
+  this.settings.collectionName = assertions.isString(this.settings.collectionName) ? this.settings.collectionName : 'store';
 
   // these values are used by CacheAndBufferLayer
   this.settings.cache = 1000;
@@ -49,16 +64,11 @@ exports.database.prototype._buildUrl = function(settings) {
 }
 
 exports.database.prototype.init = function(callback) {
-  var MongoClient = require('mongodb').MongoClient;
   var url = this.settings.url || this._buildUrl(this.settings)
-  var hasExtraConfiguration = (this.settings.extra !== undefined && this.settings.extra !== null)
   this.onMongoReady = callback
 
-  if (hasExtraConfiguration) {
-    MongoClient.connect(url, this.settings.extra, this._onMongoConnect.bind(this));
-  } else {
-    MongoClient.connect(url, this._onMongoConnect.bind(this));
-  }
+  var options = this.settings.extra || {};
+  MongoClient.connect(url, options, this._onMongoConnect.bind(this));
 }
 
 exports.database.prototype._onMongoConnect = function(error, db) {
