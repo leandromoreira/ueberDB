@@ -14,7 +14,7 @@
 var MongoClient = require('mongodb').MongoClient;
 
 /**
- * "settings" must be an object with the following values:
+ * "settings" must be an object with the following properties:
  *   - host           (string): mandatory if no url is provided on settings
  *   - dbname         (string): mandatory if no url is provided on settings
  *   - port           (number): mandatory if no url is provided on settings
@@ -67,7 +67,7 @@ exports.database.prototype._buildUrl = function(settings) {
 }
 
 exports.database.prototype.init = function(callback) {
-  var url = this.settings.url || this._buildUrl(this.settings)
+  var url = this.settings.url || this._buildUrl(this.settings);
   this.onMongoReady = callback
 
   var options = this.settings.extra || {};
@@ -80,26 +80,25 @@ exports.database.prototype._onMongoConnect = function(error, db) {
   this.db = db;
   this.collection = this.db.collection(this.settings.collectionName);
   this.db.ensureIndex(this.settings.collectionName, {key: 1}, {unique:true, background:true},
-    function(err, indexName) {console.log("index created [" + indexName + "]")})
+    function(err, indexName) {console.log("index created [" + indexName + "]")});
 
   exports.database.prototype.set = function (key, value, callback) {
-    this.collection.update({key: key}, {key: key, val: value}, {safe: true, upsert: true}, callback)
+    this.collection.update({key: key}, {key: key, val: value}, {safe: true, upsert: true}, callback);
   }
 
   exports.database.prototype.get = function (key, callback) {
-    this.collection.findOne({key: key}, callback)
+    this.collection.findOne({key: key}, callback);
   }
 
   exports.database.prototype.remove = function (key, callback) {
-    this.collection.remove({key: key}, {safe: true}, callback)
+    this.collection.remove({key: key}, {safe: true}, callback);
   }
 
   exports.database.prototype.findKeys = function (key, notKey, callback) {
-    var findRegex = this.createFindRegex(key,notKey);
-    this.collection.find({}, function(err, docs) {
-      var filteredKeys = docs.filter(function(doc){return doc.key.match(findRegex)});
-      var keys = filteredKeys.map(function(doc){return doc.key});
-      callback(keys);
+    var findRegex = this.createFindRegex(key, notKey);
+    this.collection.find({key: findRegex}).toArray(function(err, docs) {
+      var keys = docs.map(function(doc) { return doc.key });
+      callback(err, keys);
     });
   }
   exports.database.prototype.doBulk = function (bulk, callback) {
@@ -112,12 +111,12 @@ exports.database.prototype._onMongoConnect = function(error, db) {
       var keyOperation = operations[eachOperation.type]
       var eachBulk = {}
       eachBulk[keyOperation] = {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
-      mongoBulk.push(eachBulk)
+      mongoBulk.push(eachBulk);
     }
 
-    this.collection.bulkWrite(mongoBulk, callback)
+    this.collection.bulkWrite(mongoBulk, callback);
   }
   exports.database.prototype.close = function (callback) {this.db.close(callback)}
 
-  this.onMongoReady(error, this)
+  this.onMongoReady(error, this);
 }
