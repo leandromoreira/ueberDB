@@ -66,7 +66,45 @@ describe('the new mongodb adapter', function() {
     });
   });
 
-  describe('database.findKeys()', function() {
+  describe('.set() and .get()', function() {
+    var KEY = 'the key';
+
+    var db;
+
+    before(function(done) {
+      db = new ueberDB.database('new_mongodb', defaultTestSettings['new_mongodb']);
+      db.init(done);
+    });
+
+    after(function(done) {
+      db.close(done);
+    });
+
+    it('creates a record and retrieves it', function(done) {
+      var value = 'the value';
+
+      db.set(KEY, value, null, function() {
+        db.get(KEY, function(err, valueFound) {
+          expect(valueFound).to.be(value);
+          done();
+        });
+      });
+    });
+
+    it('returns null when the original record value is null', function(done) {
+      var value = null;
+
+      db.set(KEY, value, null, function() {
+        db.get(KEY, function(err, valueFound) {
+          expect(valueFound).to.be(null);
+          done();
+        });
+      });
+    });
+
+  });
+
+  describe('.findKeys()', function() {
     var db;
 
     before(function(done) {
@@ -94,7 +132,6 @@ describe('the new mongodb adapter', function() {
         done();
       });
     });
-
 
     // same scenario of https://github.com/Pita/ueberDB/wiki/findKeys-functionality
     it('returns the only matched "key" that does not match "notkey"', function(done) {

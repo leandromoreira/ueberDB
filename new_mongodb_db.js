@@ -87,7 +87,10 @@ exports.database.prototype._onMongoConnect = function(error, db) {
   }
 
   exports.database.prototype.get = function (key, callback) {
-    this.collection.findOne({key: key}, callback);
+    this.collection.findOne({key: key}, function(err, doc) {
+      var value = doc ? doc.val : doc;
+      callback(err, value);
+    });
   }
 
   exports.database.prototype.remove = function (key, callback) {
@@ -97,25 +100,36 @@ exports.database.prototype._onMongoConnect = function(error, db) {
   exports.database.prototype.findKeys = function (key, notKey, callback) {
     var findRegex = this.createFindRegex(key, notKey);
     this.collection.find({key: findRegex}).toArray(function(err, docs) {
+      docs = docs || [];
       var keys = docs.map(function(doc) { return doc.key });
+
       callback(err, keys);
     });
   }
-  exports.database.prototype.doBulk = function (bulk, callback) {
+
+  exports.database.prototype.doBulk = function (bulkOperations, callback) {
     var operations = {
-      "set": "insertOne", "remove": "deleteOne"
-    }
-    var mongoBulk = [];
-    for (var i in bulk) {
-      var eachOperation = bulk[i];
-      var keyOperation = operations[eachOperation.type]
-      var eachBulk = {}
-      eachBulk[keyOperation] = {document: {key: eachOperation.key, value: eachOperation.value}, upsert:true}
-      mongoBulk.push(eachBulk);
+      'set': 'updateOne',
+      'remove': 'deleteOne',
     }
 
-    this.collection.bulkWrite(mongoBulk, callback);
+    var mongoBulkOperations = [];
+    for (var i in bulkOperations) {
+      var eachUeberOperation = bulkOperations[i];
+      var mongoOperationType = operations[eachUeberOperation.type];
+      var mongoOperationDetails = {
+        filter: { key: eachUeberOperation.key } ,
+        update: { $set: { val: eachUeberOperation.value } },
+        upsert: true,
+      };
+      var eachBulk = {}
+      eachBulk[mongoOperationType] = mongoOperationDetails;
+      mongoBulkOperations.push(eachBulk);
+    }
+
+    this.collection.bulkWrite(mongoBulkOperations, callback);
   }
+
   exports.database.prototype.close = function (callback) {this.db.close(callback)}
 
   this.onMongoReady(error, this);
