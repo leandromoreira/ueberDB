@@ -75,12 +75,16 @@ exports.database.prototype.init = function(callback) {
 }
 
 exports.database.prototype._onMongoConnect = function(error, db) {
-  if (error) {throw "an error occored [" + error + "] on mongo connect"}
+  if (error) {throw 'an error occurred [' + error + '] on mongo connect'}
 
   this.db = db;
   this.collection = this.db.collection(this.settings.collectionName);
-  this.db.ensureIndex(this.settings.collectionName, {key: 1}, {unique:true, background:true},
-    function(err, indexName) {console.log("index created [" + indexName + "]")});
+  this.db.ensureIndex(this.settings.collectionName, {key: 1}, {unique:true, background:true}, function(err, indexName) {
+    if (err) {
+      console.error('Error creating index');
+      console.error(err.stack ? err.stack : err);
+    }
+  });
 
   exports.database.prototype.set = function (key, value, callback) {
     this.collection.update({key: key}, {key: key, val: value}, {safe: true, upsert: true}, callback);
