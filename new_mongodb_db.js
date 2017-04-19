@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+var fs = require('fs');
 var MongoClient = require('mongodb').MongoClient;
 
 /**
@@ -24,6 +25,9 @@ var MongoClient = require('mongodb').MongoClient;
  *   - password       (string)
  *   - extra          (object): optional connection settings, as described on
  *                              http://mongodb.github.io/node-mongodb-native/2.2/api/MongoClient.html#.connect
+ *                              If using SSL, provide the file path(s) on properties
+ *                              "sslCAPath", "sslKeyPath", and/or "sslKeyPath", and file content
+ *                              will be loaded into the appropriate setting
  *   - collectionName (string): defaults to "store"
  */
 exports.database = function(settings) {
@@ -52,6 +56,38 @@ exports.database = function(settings) {
   this.settings.json = true;
 }
 
+exports.database.prototype._loadSslCertificatesIntoSettings = function(rootSettings) {
+  ['sslCA', 'sslKey', 'sslCert'].forEach(function(setting) {
+    var settingPath = rootSettings[setting + 'Path'];
+
+    if (settingPath) {
+      rootSettings[setting] = fs.readFileSync(settingPath);
+    }
+  });
+}
+
+exports.database.prototype._buildExtraSettings = function(extraSettings) {
+  extraSettings = extraSettings || {};
+  var loadSslCertificates = this._loadSslCertificatesIntoSettings;
+
+  [
+    // mongodb 2.2: SSL settings are on root
+    // http://mongodb.github.io/node-mongodb-native/2.2/tutorials/connect/ssl/
+    extraSettings,
+    // mongodb 2.0: SSL settings are on sub-levels, depending of where we're connecting to
+    // http://mongodb.github.io/node-mongodb-native/2.0/reference/connecting/ssl/
+    extraSettings.server,
+    extraSettings.replset,
+    extraSettings.mongos,
+  ].forEach(function(rootSettings) {
+    if (rootSettings) {
+      loadSslCertificates(rootSettings);
+    }
+  });
+
+  return extraSettings;
+}
+
 // Samples: normal url, authentitcation url, replicatset url, ssl url
 // var url = 'mongodb://<HOST>:<PORT>/<DB>';
 // var url = 'mongodb://<USER>:<PASSWORD>@<HOST>:<PORT>?authSource=<AUTHENTICATION_DB>';
@@ -67,10 +103,10 @@ exports.database.prototype._buildUrl = function(settings) {
 }
 
 exports.database.prototype.init = function(callback) {
-  var url = this.settings.url || this._buildUrl(this.settings);
-  this.onMongoReady = callback
+  this.onMongoReady = callback || function(){};
 
-  var options = this.settings.extra || {};
+  var url = this.settings.url || this._buildUrl(this.settings);
+  var options = this._buildExtraSettings(this.settings.extra);
   MongoClient.connect(url, options, this._onMongoConnect.bind(this));
 }
 
