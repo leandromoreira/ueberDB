@@ -119,6 +119,16 @@ describe('the new mongodb adapter', function() {
               expect(sslSettingsRoot[config].toString()).to.be(FILE_CONTENT);
               done();
             });
+
+            // "sslCA" property needs to be replicated into "ca" setting too
+            // https://www.compose.com/articles/one-missing-key-and-how-it-broke-node-js-and-mongodb/
+            if (config === 'sslCA') {
+              it('also loads file content into "ca" property', function(done) {
+                var sslSettingsRoot = getSslSettingsRoot();
+                expect(sslSettingsRoot['ca'].toString()).to.be(FILE_CONTENT);
+                done();
+              });
+            }
           });
         });
       }

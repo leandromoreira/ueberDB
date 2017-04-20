@@ -62,6 +62,12 @@ exports.database.prototype._loadSslCertificatesIntoSettings = function(rootSetti
 
     if (settingPath) {
       rootSettings[setting] = fs.readFileSync(settingPath);
+
+      // "sslCA" property needs to be replicated into a "ca" property on mongo 2.0
+      // https://www.compose.com/articles/one-missing-key-and-how-it-broke-node-js-and-mongodb/
+      if (setting === 'sslCA') {
+        rootSettings['ca'] = rootSettings[setting];
+      }
     }
   });
 }
