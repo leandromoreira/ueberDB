@@ -1,13 +1,13 @@
 var expect = require('expect.js');
 
-var newMongoDB          = require('../new_mongodb_db');
-var defaultTestSettings = require('../defaultTestSettings.js');
+var mongoDB             = require('../mongodb_db');
+var defaultTestSettings = require('../defaultTestSettings.js').mongodb;
 var ueberDB             = require('../CloneAndAtomicLayer');
 
-describe('the new mongodb adapter', function() {
+describe('the mongodb adapter', function() {
   context('.database()', function() {
     var settings;
-    var subject = function() { newMongoDB.database(settings) };
+    var subject = function() { mongoDB.database(settings) };
 
     beforeEach(function() {
       // initiate settings with mandatory values
@@ -75,7 +75,7 @@ describe('the new mongodb adapter', function() {
 
       var settings, db;
       var subject = function(done) {
-        db = new ueberDB.database('new_mongodb', settings);
+        db = new ueberDB.database('mongodb', settings);
         db.init(done);
       };
 
@@ -85,7 +85,7 @@ describe('the new mongodb adapter', function() {
       });
 
       beforeEach(function() {
-        var defaultSettings = defaultTestSettings['new_mongodb'];
+        var defaultSettings = defaultTestSettings;
 
         // initiate settings with mandatory values
         settings = {
@@ -171,7 +171,7 @@ describe('the new mongodb adapter', function() {
     var db;
 
     before(function(done) {
-      db = new ueberDB.database('new_mongodb', defaultTestSettings['new_mongodb']);
+      db = new ueberDB.database('mongodb', defaultTestSettings);
       db.init(done);
     });
 
@@ -206,7 +206,7 @@ describe('the new mongodb adapter', function() {
     var db;
 
     before(function(done) {
-      db = new ueberDB.database('new_mongodb', defaultTestSettings['new_mongodb']);
+      db = new ueberDB.database('mongodb', defaultTestSettings);
       db.init(function() {
         // set initial values as on the example of
         // https://github.com/Pita/ueberDB/wiki/findKeys-functionality#how-it-works

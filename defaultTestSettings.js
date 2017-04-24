@@ -5,7 +5,6 @@ exports["dirty"] = {filename:"var/dirty.db"};
 exports["redis"] = {};
 exports["couch"] = {port: 5984, host: 'localhost', database: "etherpadlite", maxListeners: 1, user: 'admin', password: 'admin'};
 exports["mongodb"] = {port: 27017, host: "localhost", dbname: "etherpadlite"};
-exports["new_mongodb"] = {port: 27017, host: "localhost", dbname: "etherpadlite"};
 exports["cassandra"] = {clientOptions: {keyspace: 'etherpadlite', contactPoints: ['localhost']}, columnFamily: "etherpadlite"};
 exports["elasticsearch"] = {};
 exports["crate"] = {schema: "etherpadlite", table: "store", number_of_replicas: "0-5" };
